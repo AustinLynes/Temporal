@@ -1,0 +1,4 @@
+[submodule "submodules/GLFW"]
+	path = submodules/GLFW
+	url = https://github.com/AustinLynes/GLFW
+
