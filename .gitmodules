@@ -2,3 +2,9 @@
 	path = submodules/GLFW
 	url = https://github.com/AustinLynes/GLFW
 
+[submodule "submodules/gtest"]
+	path = submodules/gtest
+	url = https://github.com/AustinLynes/gtest
+[submodule "submodules/volk"]
+	path = submodules/volk
+	url = https://github.com/AustinLynes/volk
