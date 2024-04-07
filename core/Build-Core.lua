@@ -11,17 +11,23 @@ project "Core"
    {
       "Source",
 
-      "../vendor/",
-      "../vendor/glfw/include/",
+      "../submodules/",
+      "../submodules/glfw/include/",
+      "../submodules/volk/",
 
       "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.SPIRV}",
+      
    }
  
     links
     {        
         "GLFW",   
-        "%{Library.Vulkan}",
+
+   
     }
+
+
    targetdir ("../Build/" .. OutputDir .. "/%{prj.name}")
    objdir ("../Build/" .. OutputDir .. "/%{prj.name}")
 

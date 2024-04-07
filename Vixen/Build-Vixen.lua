@@ -12,14 +12,16 @@ project "Vixen"
       "Source",
       "../core/source",
 
-      "../vendor/",
-      "../vendor/glfw/include/",
-
+      "../submodules/",
+      "../submodules/glfw/include/",
+      "../submodules/gtest/googletest/include/",
+      
       "%{IncludeDir.VulkanSDK}",
-   }
- 
+    }
+    
     links
     { 
+        "../submodules/gtest/lib/%{cfg.buildcfg}/gtest.lib",
         "Core",       
         "GLFW",   
         "%{Library.Vulkan}",

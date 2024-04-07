@@ -13,10 +13,12 @@ project "Runtime"
 	  "../Core/Source",
 
 
-      "../vendor/",
-      "../vendor/glfw/include/",
+      "../submodules/",
+      "../submodules/glfw/include/",
+      "../submodules/volk/",
       
       "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.SPIRV}",
 
    }  
 
@@ -25,12 +27,10 @@ project "Runtime"
 
    links
    {
-        "GLFW",
-        "Core",
-        "%{Library.Vulkan}"
+       "GLFW",
+       "Core",
     }
 
- 
 
    filter "system:windows"
        systemversion "latest"
