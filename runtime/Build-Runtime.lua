@@ -5,32 +5,33 @@ project "Runtime"
    targetdir "Build/%{cfg.buildcfg}"
    staticruntime "off"
 
-   files { "Source/**.h", "Source/**.cpp",   }
+   files { "Source/**.h", "Source/**.cpp",  }
 
    includedirs
    {
       "Source",
-	  "../Core/Source",
 
+      "../Core/Source",
+      "../Core/Unit Tests",
 
       "../submodules/",
       "../submodules/glfw/include/",
-      "../submodules/volk/",
-      
+
       "%{IncludeDir.VulkanSDK}",
       "%{IncludeDir.SPIRV}",
+      
+   }
+ 
+    links
+    {        
+        "Core",
+        "GLFW",
+        "%{Library.Vulkan}"
+    }
 
-   }  
 
    targetdir ("../Build/" .. OutputDir .. "/%{prj.name}")
    objdir ("../Build/" .. OutputDir .. "/%{prj.name}")
-
-   links
-   {
-       "GLFW",
-       "Core",
-    }
-
 
    filter "system:windows"
        systemversion "latest"

@@ -22,10 +22,6 @@ group "Core"
     include "Core/Build-Core.lua"
 group ""
 
-group "Test Framework"
-    include "Vixen/Build-Vixen.lua"
-group ""
-
 group "Submodules"
     include "submodules/glfw"
     -- include "submodules/volk"

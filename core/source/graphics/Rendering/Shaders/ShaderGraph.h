@@ -1,10 +1,8 @@
 #pragma once
-#include <vector>
-#include <string>
 
-#define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
-#include <unordered_map>
+#include "datastructures/datastructures_pch.h"
+#include "Graphics/gfx_pch.h"
+
 
 enum class ShaderVarType {
 	// default single value
@@ -45,26 +43,27 @@ struct ShaderTableElement {
 	std::string name;
 	ShaderVarType type;
 	int location = -1;
+	int binding = -1;
 };
 
 struct CG_Node
 { };
-
-struct FloatNode : public CG_Node {
-	
-	CG_Node output;
-	
-	float value;
-};
-
-template<typename TNODE>
-struct MultiplyNode : public CG_Node {
-	
-	TNODE input_a; // input a
-	TNODE input_b; // input b 
-
-	TNODE output; // out put node
-};
+//
+//struct FloatNode : public CG_Node {
+//	
+//	CG_Node output;
+//	
+//	float value;
+//};
+//
+//template<typename TNODE>
+//struct MultiplyNode : public CG_Node {
+//	
+//	TNODE input_a; // input a
+//	TNODE input_b; // input b 
+//
+//	TNODE output; // out put node
+//};
 
 /*
 * 
@@ -81,37 +80,42 @@ struct MultiplyNode : public CG_Node {
 */
 
 
-class Shader {
+class ShaderGraph {
 public:
-	Shader(VkDevice device, const std::string& filepath, VkShaderStageFlagBits stage);
+	ShaderGraph(VkDevice device, const std::string& filepath, VkShaderStageFlagBits stage);
 
-	~Shader();
+	~ShaderGraph();
 	
-	void AddInput(int location, ShaderVarType type, const std::string& name);
-	void AddOutput(ShaderVarType type, const std::string& name);
+	void AddInput(int location, ShaderVarType type, const std::string& name, int binding);
+	void AddOutput(int location, ShaderVarType type, const std::string& name);
 	void AddUniform(ShaderVarType type, const std::string& name);
+	
+	void AddMain(const std::string& fn);
 
-	void AddNode(CG_Node node);
-	void ConnectNodes(CG_Node left, CG_Node right);
+	void AddNode(CG_Node* node);
+	void ConnectNodes(CG_Node* left, CG_Node* right);
 
 	bool Compile();
 
 	VkShaderModule Get();
 
+	std::vector<VkVertexInputAttributeDescription> GetAttributes();
+
 private:
 	void GenerateShaderData();
 
 	bool CreateModule();
-	bool LoadData();
+	bool LoadSPIRVByteCode();
 	bool ConvertSourceToSPIRV();
 
 
 private:
-	const std::string exension_GLSL = ".glsl";
-	const std::string exension_SPIRV = ".spv";
+	const std::string extension_GLSL = ".glsl";
+	const std::string extension_SPIRV = ".spv";
 
-	
-	CG_Node* root;
+	std::vector<CG_Node*> nodes;
+	std::unordered_map<CG_Node*, CG_Node*> edges;
+
 
 	// shader generation elements
 	std::unordered_map<ShaderTableGroup, std::vector<ShaderTableElement>> ioTable;
@@ -119,6 +123,7 @@ private:
 	std::string directory;
 	std::string fileName;
 	std::string version;
+	std::string func;
 
 	VkShaderStageFlagBits stage;
 
@@ -126,4 +131,5 @@ private:
 
 	VkShaderModule shaderModule;
 	VkDevice device;
+
 };

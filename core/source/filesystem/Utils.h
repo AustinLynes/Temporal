@@ -1,10 +1,7 @@
 #pragma once
 
-#include <debug/Console.h>
+#include "pch.h"
 
-#include <string>
-#include <fstream>
-#include <sstream>
 #include <filesystem>
 
 namespace FileSystem {
@@ -12,7 +9,7 @@ namespace FileSystem {
 	std::string ReadFileFromDisc(const std::string& filepath)
 	{
 
-		std::ifstream file(filepath);
+		std::ifstream file (filepath);
 
 		if (!file.is_open()) {
 			Console::Warn("Could Not Open File: ", filepath);

@@ -4,7 +4,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include <graphics/renderer.h>
+#include <graphics/Rendering/renderer.h>
 #include <debug/Console.h>
 
 namespace glfw
@@ -20,14 +20,28 @@ void InitilizeWindow()
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	glfw::window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 }
 
 Renderer renderer;
 
+
+#define ENABLE_AUTOMATED_TESTING 0
+#define ENABLE_VISUAL_TESTING 1
+
+#if ENABLE_AUTOMATED_TESTING
+#include "UnitTests.hpp"
+#endif 
+
+
 int main() {
+#if ENABLE_AUTOMATED_TESTING 
+	_
+#endif
+
+#if ENABLE_VISUAL_TESTING
+
 	Console::Log("Process Started.");
 	Console::Log("Starting Test");
 
@@ -44,13 +58,18 @@ int main() {
 	Console::Log("Starting Update Loop");
 
 	while (!glfwWindowShouldClose(glfw::window)) {
-		Console::Info("Updating");
+		//Console::Info("Updating");
+
+		renderer.RenderFrame();
+		renderer.PresentFrame();
 		glfwPollEvents();
 	}
 	Console::Log("Application Closed, Performing Cleanup.");
 	renderer.Cleanup();
 
 	Console::Log("Cleanup Finished Closing Process.");
+#endif
+
 	return 0;
 }
 

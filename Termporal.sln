@@ -11,10 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Submodules", "Submodules", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLFW", "submodules\glfw\GLFW.vcxproj", "{154B857C-0182-860D-AA6E-6C109684020F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Framework", "Test Framework", "{BAEA7927-A679-03F1-4F98-17EC3B061497}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vixen", "Vixen\Vixen.vcxproj", "{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -40,12 +36,6 @@ Global
 		{154B857C-0182-860D-AA6E-6C109684020F}.Dist|x64.Build.0 = Dist|x64
 		{154B857C-0182-860D-AA6E-6C109684020F}.Release|x64.ActiveCfg = Release|x64
 		{154B857C-0182-860D-AA6E-6C109684020F}.Release|x64.Build.0 = Release|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Debug|x64.ActiveCfg = Debug|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Debug|x64.Build.0 = Debug|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Dist|x64.ActiveCfg = Dist|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Dist|x64.Build.0 = Dist|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Release|x64.ActiveCfg = Release|x64
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +43,5 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{2EB4837C-1AEB-840D-C3D7-6A10AFED000F} = {15A0C35D-0158-05AB-6A5F-DE065636A09B}
 		{154B857C-0182-860D-AA6E-6C109684020F} = {4F1D0BC4-3B16-2A16-6448-0F9B50A00922}
-		{2FDB4E0E-9BEF-76BF-6471-1A1FD04473F0} = {BAEA7927-A679-03F1-4F98-17EC3B061497}
 	EndGlobalSection
 EndGlobal

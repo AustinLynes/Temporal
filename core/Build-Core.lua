@@ -5,15 +5,16 @@ project "Core"
    targetdir "Build/%{cfg.buildcfg}"
    staticruntime "off"
 
-   files { "Source/**.h", "Source/**.cpp",  "Source/**.impl.h" }
+   files { "Source/**.h", "Source/**.cpp",  "Source/**.impl.h", "Unit Tests/**.hpp"  }
 
    includedirs
    {
       "Source",
+      "Unit Tests",
 
       "../submodules/",
       "../submodules/glfw/include/",
-      "../submodules/volk/",
+    
 
       "%{IncludeDir.VulkanSDK}",
       "%{IncludeDir.SPIRV}",
@@ -22,11 +23,13 @@ project "Core"
  
     links
     {        
-        "GLFW",   
-
-   
+        "GLFW",
+        "%{Library.Vulkan}"
     }
 
+    defines {
+    
+    }
 
    targetdir ("../Build/" .. OutputDir .. "/%{prj.name}")
    objdir ("../Build/" .. OutputDir .. "/%{prj.name}")
