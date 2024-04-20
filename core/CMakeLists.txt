@@ -14,13 +14,29 @@ ${UNIT_TESTS_SOURCE}
 ${UNIT_TESTS_HEADERS}
 )
 
-find_package(Vulkan REQUIRED)
-
-if(Vulkan_FOUND)
-    message(STATUS "Vulkan found: ${Vulkan_INCLUDE_DIRS}")
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    # Linux-specific configuration
+    find_package(libvulkan1 REQUIRED)
+    
+    if(Vulkan_FOUND)
+        message(STATUS "Vulkan found: ${Vulkan_INCLUDE_DIRS}")
+    else()
+        message(FATAL_ERROR "Vulkan not found")
+    endif()
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    # Windows-specific configuration
+    find_package(Vulkan REQUIRED)
+    
+    if(Vulkan_FOUND)
+        message(STATUS "Vulkan found: ${Vulkan_INCLUDE_DIRS}")
+    else()
+        message(FATAL_ERROR "Vulkan not found")
+    endif()
 else()
-    message(FATAL_ERROR "Vulkan not found")
+    message(FATAL_ERROR "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
 endif()
+
+
 
 include_directories(${Vulkan_INCLUDE_DIRS})
 # Link GLFW and Vulkan to Runtime executable
