@@ -53,7 +53,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-            - name: Install Vulkan SDK
+
     - name: Install VulkanSDK
       if: matrix.os == 'ubuntu-latest'
       run: |
