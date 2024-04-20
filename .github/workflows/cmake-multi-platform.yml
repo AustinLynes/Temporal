@@ -60,7 +60,7 @@ jobs:
 
     - name: Install dependencies
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt update && sudo apt -y install libxinerama-dev libxcursor
+      run: sudo apt update && sudo apt -y install libxinerama-dev
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
