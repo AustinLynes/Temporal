@@ -38,8 +38,26 @@ namespace vk
 
 }// GLOBALS
 
+#include <array>
+
+#pragma pack(push, 4)
+struct SQVertex {
+	float POS[3];
+	float UV[2];
+};
+#pragma pack(pop)
+
+constexpr std::array<SQVertex, 4> screenQuadVertices = {
+	// Positions          // Texture coordinates
+	SQVertex{-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,},
+	SQVertex{ 1.0f, -1.0f, 0.0f,  1.0f, 0.0f,},
+	SQVertex{-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,},
+	SQVertex{ 1.0f,  1.0f, 0.0f,  1.0f, 1.0f }
+};
 
 
+
+#define PIPELINE_STR(pipe) #pipe
 
 Renderer::Renderer() : window{nullptr}
 {
@@ -82,6 +100,7 @@ bool Renderer::Initilize(GLFWwindow* window)
 
 	vk::framebuffer = new Framebuffer(vk::Device, resoulution, vk::QueueFamily);
 
+	//vk::renderPipelines.emplace(RenderPipelines::ScreenRenderPass, RenderPipelineFactory::Create<RenderPipelines::Basic2D>(vk::Device, resoulution));
 	vk::renderPipelines.emplace("Basic2D", RenderPipelineFactory::Create<RenderPipelines::Basic2D>(vk::Device, resoulution));
 		
 
@@ -102,22 +121,31 @@ bool Renderer::Initilize(GLFWwindow* window)
 
 using namespace VulkanAPI;
 
+struct Color {
+	float r;
+	float g;
+	float b;
+	float a;
+};
+
 void Renderer::RenderFrame() {
 
 	VkCommandBuffer cmd = vk::commandManager->BeginSingleTimeCommand(CommandType::Graphics);
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, vk::renderPipelines["Basic2D"]->Get());
-	//
-	VkClearValue clearColor = { {{1.0f, 0.0f, 0.0f, 1.0f}} };
+
+	VkClearValue clearValues[2];
+	clearValues[0].color = { {0.1f, 0.1f, 0.1f, 0} }; // Start color of the gradient
+
 	
-	VkRenderPassBeginInfo renderPass
+	VkRenderPassBeginInfo renderPassBegineInfo
 	{
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 		.renderPass = vk::framebuffer->GetRenderPass(),
 		.framebuffer = vk::framebuffer->Get(),
 		.renderArea = { 0, 0, vk::framebuffer->GetWidth(), vk::framebuffer->GetHeight() },
-		.clearValueCount = 1, 
-		.pClearValues = &clearColor,
+		.clearValueCount = _countof(clearValues), 
+		.pClearValues = clearValues,
 		
 	};
 
@@ -146,9 +174,9 @@ void Renderer::RenderFrame() {
 		1, &barrier
 	);
 
-	vkCmdClearColorImage(cmd, currentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor.color, 1, &subresourceRange);
+	vkCmdClearColorImage(cmd, currentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValues[0].color, 1,&subresourceRange );
 	
-	vkCmdBeginRenderPass(cmd, &renderPass, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(cmd, &renderPassBegineInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdEndRenderPass(cmd);
 
@@ -174,6 +202,8 @@ void Renderer::PresentFrame()
 	}
 	else if (res != VK_SUCCESS) {
 		// ERROR
+		Console::Error("Could Not Aquire Next Image...");
+		return;
 	}
 	auto cmd = vk::commandManager->BeginSingleTimeCommand(CommandType::Graphics);
 
