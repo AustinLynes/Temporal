@@ -25,11 +25,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
-        c_compiler: [gcc, clang, cl]
+        c_compiler: [gcc, clang, msvc]
         include:
           - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
+            c_compiler: msvc
+            cpp_compiler: msvc
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
@@ -42,7 +42,7 @@ jobs:
           - os: windows-latest
             c_compiler: clang
           - os: ubuntu-latest
-            c_compiler: cl
+            c_compiler: msvc
 
     steps:
     - uses: actions/checkout@v3
@@ -53,17 +53,6 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-    - name: Install Vulkan SDK
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo add-apt-repository ppa:oibaf/graphics-drivers
-        sudo apt update
-        sudo apt upgrade
-        sudo apt install libvulkan1 mesa-vulkan-drivers
-        SDK_PATH=$(dirname $(dirname $(which vulkaninfo)))
-        LIB_PATH=$(find $SDK_PATH -name libvulkan.so)
-        echo "VULKAN_SDK=$SDK_PATH" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=$SDK_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
     #- name: Set environment variables
     #  run: |
