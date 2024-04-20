@@ -56,8 +56,10 @@ jobs:
     - name: Install Vulkan SDK
       if: matrix.os == 'ubuntu-latest'
       run: |
+        sudo add-apt-repository ppa:oibaf/graphics-drivers
         sudo apt update
-        sudo apt install -y vulkan-sdk
+        sudo apt upgrade
+        sudo apt libvulkan1 mesa-vulkan-drivers
         SDK_PATH=$(dirname $(dirname $(which vulkaninfo)))
         LIB_PATH=$(find $SDK_PATH -name libvulkan.so)
         echo "VULKAN_SDK=$SDK_PATH" >> $GITHUB_ENV
