@@ -59,7 +59,7 @@ jobs:
         sudo add-apt-repository ppa:oibaf/graphics-drivers
         sudo apt update
         sudo apt upgrade
-        sudo apt install libvulkan1 mesa-vulkan-drivers vulkan-utils
+        sudo apt install libvulkan1 mesa-vulkan-drivers
         
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
