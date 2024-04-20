@@ -27,7 +27,7 @@ void InitilizeWindow()
 Renderer renderer;
 
 
-#define ENABLE_AUTOMATED_TESTING 0
+#define ENABLE_AUTOMATED_TESTING 1
 #define ENABLE_VISUAL_TESTING 1
 
 #if ENABLE_AUTOMATED_TESTING
