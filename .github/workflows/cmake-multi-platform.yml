@@ -64,7 +64,8 @@ jobs:
           sudo apt update
           sudo apt -y install libxinerama-dev 
           sudo apt -y install libxcursor-dev
-
+          sudo apt -y install libxi-dev
+          
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
       with:
