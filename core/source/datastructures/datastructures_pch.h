@@ -3,6 +3,7 @@
 #include <string>
 
 
+#include <array>	// static array
 #include <vector>	// dynamic array
 #include <list>		// double link list
 
@@ -11,7 +12,6 @@
 #include <deque>
 // STACK (LIFO)
 #include <stack>	
-
 // USED FOR CREATING UNIQUE LISTS
 #include <set>		// includes, set, multiset
 #include <unordered_set> // unordered, includes u_set, u_multiset

@@ -5,6 +5,7 @@ void RenderPipeline::Initillize(uint32_t width, uint32_t height)
 {
 	InternalResolution = { width, height };
 	
+	CreateDescriptorPool();
 	CreateRenderPass();
 	CreatePipeline();
 }

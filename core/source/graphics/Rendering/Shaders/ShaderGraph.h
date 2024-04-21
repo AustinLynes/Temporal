@@ -3,7 +3,6 @@
 #include "datastructures/datastructures_pch.h"
 #include "Graphics/gfx_pch.h"
 
-
 enum class ShaderVarType {
 	// default single value
 	_BOOL_,
@@ -79,6 +78,8 @@ struct CG_Node
 
 */
 
+#define MAX_TEXTURES 16
+class Texture2D;
 
 class ShaderGraph {
 public:
@@ -89,7 +90,9 @@ public:
 	void AddInput(int location, ShaderVarType type, const std::string& name, int binding);
 	void AddOutput(int location, ShaderVarType type, const std::string& name);
 	void AddUniform(ShaderVarType type, const std::string& name);
-	
+	void AddConstant();
+	void AddTexture2D(const std::string& filepath);
+
 	void AddMain(const std::string& fn);
 
 	void AddNode(CG_Node* node);
@@ -128,7 +131,10 @@ private:
 	VkShaderStageFlagBits stage;
 
 	std::vector<unsigned int> data;
+	std::array<Texture2D*, MAX_TEXTURES> textures;
+	int textureCount = -1;
 
+	
 	VkShaderModule shaderModule;
 	VkDevice device;
 

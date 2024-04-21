@@ -27,6 +27,8 @@ namespace VulkanAPI {
 	}
 
 
+
+
 	VkInstance CreateInstance(std::vector<std::string> layers, std::vector<std::string> extensions) {
 
 		VkInstance inst;
@@ -478,6 +480,170 @@ namespace VulkanAPI {
 #endif
 
 		return family;
+	}
+
+	VkDeviceMemory AllocateImageMemory(VkDevice device, VkImage& image) {
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+
+		VkMemoryRequirements requirements{};
+		vkGetImageMemoryRequirements(device, image, &requirements);
+
+		VkMemoryAllocateInfo memoryInfo{};
+		memoryInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		memoryInfo.memoryTypeIndex = requirements.memoryTypeBits;
+		memoryInfo.allocationSize = requirements.size;
+
+		VK_CHECK(vkAllocateMemory(device, &memoryInfo, nullptr, &memory));
+		VK_CHECK(vkBindImageMemory(device, image, memory, 0));
+
+		return memory;
+	}
+
+	VkImage CreateImage(VkDevice device, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageType type) {
+		VkImage image = VK_NULL_HANDLE;
+
+		VkImageCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		info.pNext = nullptr;
+		info.flags = 0;
+		info.format = format;
+		info.arrayLayers = 1;
+		info.extent.depth = depth;
+		info.extent.width = width;
+		info.extent.height = height;
+		info.imageType = type;
+		info.initialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; // create the image ready to be written to,
+		info.mipLevels = 1;
+		info.tiling = VK_IMAGE_TILING_LINEAR;
+		info.samples = VK_SAMPLE_COUNT_1_BIT;
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		VK_CHECK(vkCreateImage(device, &info, nullptr, &image));
+		
+		return image;
+	}
+
+	VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageViewType type) {
+		VkImageView view = VK_NULL_HANDLE;
+
+		VkImageViewCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		info.format = format;
+		info.image = image;
+		info.viewType = type;
+		info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		info.subresourceRange.baseArrayLayer = 0;
+		info.subresourceRange.baseMipLevel = 0;
+		info.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		info.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+
+		VK_CHECK(vkCreateImageView(device, &info, nullptr, &view));
+
+		return view;
+	}
+
+	VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice device, DescriptorPoolDesc desc) {
+		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+
+		assert(desc.total() && "No Bindings Requested.. this is Undefined behavior.");
+
+		std::vector<VkDescriptorSetLayoutBinding> bindings;
+		uint32_t bindingCount = -1;
+
+		if (desc.numRequestedSamplers.has_value()) {
+			bindings.push_back({
+				.binding = ++bindingCount,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = desc.numRequestedSamplers.value(),
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				});
+		}
+
+		if (desc.numRequestedCombinedSamplers.has_value()) {
+			bindings.push_back({
+				.binding = ++bindingCount,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = desc.numRequestedCombinedSamplers.value(),
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				});
+		}
+
+		if (desc.numRequestedUniformBuffers.has_value()) {
+			bindings.push_back({
+				.binding = ++bindingCount,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorCount = desc.numRequestedUniformBuffers.value(),
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				});
+		}
+
+		if (desc.numRequestedStorageBuffers.has_value()) {
+			bindings.push_back({
+				.binding = ++bindingCount,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				.descriptorCount = desc.numRequestedStorageBuffers.value(),
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				});
+		}
+
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.flags = 0;
+		layoutInfo.pNext = nullptr;
+		layoutInfo.bindingCount = bindings.size();
+		layoutInfo.pBindings = bindings.data();
+
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layout));
+		return layout;
+	}
+
+	VkDescriptorSet AllocateDescriptorSet(VkDevice device, VkDescriptorPool& pool, VkDescriptorSetLayout& layout)
+	{
+		VkDescriptorSet descriptorSet = nullptr;
+		
+		VkDescriptorSetAllocateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		info.pNext = nullptr;
+		info.descriptorPool = pool;
+		info.descriptorSetCount = 1;
+		info.pSetLayouts = &layout;
+
+		VK_CHECK(vkAllocateDescriptorSets(device, &info, &descriptorSet));
+		
+		return descriptorSet;
+	}
+
+	VkDescriptorPool CreateDescriptorPool(VkDevice device, DescriptorPoolDesc desc)
+	{
+		VkDescriptorPool pool = VK_NULL_HANDLE;
+		
+		std::vector<VkDescriptorPoolSize> descriptorPoolDesc;
+		if (desc.numRequestedSamplers.has_value()) {
+			descriptorPoolDesc.push_back({ VK_DESCRIPTOR_TYPE_SAMPLER, desc.numRequestedSamplers.value()});
+		}
+		if (desc.numRequestedCombinedSamplers.has_value()) {
+			descriptorPoolDesc.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, desc.numRequestedCombinedSamplers.value()});
+		}
+		if (desc.numRequestedUniformBuffers.has_value()) {
+			descriptorPoolDesc.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, desc.numRequestedUniformBuffers.value()});
+		}
+		if (desc.numRequestedStorageBuffers.has_value()) {
+			descriptorPoolDesc.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, desc.numRequestedStorageBuffers.value()});
+		}
+
+		VkDescriptorPoolCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		info.pNext = nullptr;
+		info.flags = 0;
+		info.maxSets = 8;
+		info.poolSizeCount = descriptorPoolDesc.size();
+		info.pPoolSizes = descriptorPoolDesc.data();
+		
+		VK_CHECK(vkCreateDescriptorPool(device, &info, nullptr, &pool))
+		
+		return pool;
 	}
 
 }

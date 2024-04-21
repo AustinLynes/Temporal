@@ -14,6 +14,8 @@
 
 #include "filesystem/Utils.h"
 
+#include "../Textures/TextureFactory.h"
+
 
 ShaderGraph::ShaderGraph(VkDevice device, const std::string& filepath, VkShaderStageFlagBits stage)
 {
@@ -69,6 +71,60 @@ void ShaderGraph::AddUniform(ShaderVarType type, const std::string& name)
 
 	ioTable[ShaderTableGroup::Uniforms].push_back(elm);
 }
+
+void ShaderGraph::AddConstant()
+{
+	
+}
+
+void ShaderGraph::AddTexture2D(const std::string& filepath)
+{
+	uint32_t width = 16u;
+	uint32_t height = 16u;
+	TextureFormat format = TextureFormat::ARGB32_SFLOAT;
+
+	// Load the Texture.
+	auto texture = TextureFactory::CreateTexture2D(device, width, height, format);
+	textures[++textureCount] = texture;
+
+	//VkDescriptorImageInfo imageInfo = {};
+	//imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	//imageInfo.imageView = texture->View();
+	//imageInfo.sampler = texture->Sampler();
+
+
+	//VkWriteDescriptorSet descriptorWrite = {};
+	//descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//descriptorWrite.dstSet = descriptorSet;
+	//descriptorWrite.dstBinding = 0;
+	//descriptorWrite.dstArrayElement = 0;
+	//descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//descriptorWrite.descriptorCount = 1;
+	//descriptorWrite.pImageInfo = &imageInfo;
+
+	//vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+
+}
+
+//void ShaderGraph::AddBinding()
+//{
+//	VkDescriptorImageInfo imageInfo = {};
+//	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+//	imageInfo.imageView = textureImageView;
+//	imageInfo.sampler = textureSampler;
+//
+//	VkWriteDescriptorSet descriptorWrite = {};
+//	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//	descriptorWrite.dstSet = descriptorSet;
+//	descriptorWrite.dstBinding = 0;
+//	descriptorWrite.dstArrayElement = 0;
+//	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+//	descriptorWrite.descriptorCount = 1;
+//	descriptorWrite.pImageInfo = &imageInfo;
+//
+//	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+//
+//}
 
 void ShaderGraph::AddMain(const std::string& fn)
 {

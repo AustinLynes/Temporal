@@ -128,6 +128,30 @@ namespace VulkanAPI {
 
 	};
 
+	struct DescriptorPoolDesc {
+		std::optional<uint32_t> numRequestedSamplers;
+		std::optional<uint32_t> numRequestedCombinedSamplers;
+		std::optional<uint32_t> numRequestedUniformBuffers;
+		std::optional<uint32_t> numRequestedStorageBuffers;
+
+		uint32_t total(){
+			uint32_t sum = 0;
+			
+			if (numRequestedSamplers.has_value())
+				sum += numRequestedSamplers.value();
+			
+			if (numRequestedCombinedSamplers.has_value())
+				sum += numRequestedCombinedSamplers.value();
+			
+			if (numRequestedStorageBuffers.has_value())
+				sum += numRequestedStorageBuffers.value();
+
+			if (numRequestedUniformBuffers.has_value())
+				sum += numRequestedUniformBuffers.value();
+
+			return sum;
+		}
+	};
 
 	// CORE
 	VkInstance CreateInstance(std::vector<std::string> layers, std::vector<std::string> extensions);
@@ -161,7 +185,14 @@ namespace VulkanAPI {
 	void FreeSemaphoreBlock(VkDevice device, SemaphoreBlock& block);
 	SemaphoreBlock CreateSemaphoreBlock(VkDevice device);
 
+	// RESOURCES && MEMORY
+	VkImage CreateImage(VkDevice device, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageType type);
+	VkDeviceMemory AllocateImageMemory(VkDevice device, VkImage& image);
+	VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageViewType type);
 
+	VkDescriptorPool CreateDescriptorPool(VkDevice device, DescriptorPoolDesc desc);
+	VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice device, DescriptorPoolDesc desc);
 
+	VkDescriptorSet AllocateDescriptorSet(VkDevice device, VkDescriptorPool& pool, VkDescriptorSetLayout& layout);
 }
 

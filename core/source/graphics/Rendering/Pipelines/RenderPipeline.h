@@ -20,6 +20,8 @@ public:
 	VkPipeline Get();
 
 protected: /* INTERFACE */
+	virtual void CreateDescriptorPool() = 0;
+
 	virtual void CreateRenderPass() = 0;
 	virtual void CreatePipeline() = 0;
 
@@ -30,6 +32,10 @@ protected:
 	Resolution InternalResolution;
 
 	VkRenderPass renderPass;
+
+	VkDescriptorSet descriptorSet;
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorPool descriptorPool;
 
 	VkPipeline pipeline;
 	VkPipelineLayout layout;
