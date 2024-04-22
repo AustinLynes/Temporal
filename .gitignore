@@ -35,3 +35,9 @@ CTestTestfile.cmake
 CMakeDoxygenDefaults.cmake
 
 CMakeDoxyfile.in
+
+runtime/Debug/
+
+*.obj
+
+runtime/Runtime.dir/Debug/

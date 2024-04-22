@@ -30,7 +30,7 @@ namespace RenderPipelines {
 			auto vertexFilepath = baseDir / "vertex.hlsl";
 
 			// describe what will happen in the vertex stage..
-			vertex = new ShaderGraph(device, vertexFilepath.generic_string(), VK_SHADER_STAGE_VERTEX_BIT);
+			vertex = new ShaderGraph(vertexFilepath.generic_string(), VK_SHADER_STAGE_VERTEX_BIT);
 			vertex->AddInput(0, ShaderVarType::_VEC3_, "Position", 0);
 			vertex->AddInput(1, ShaderVarType::_VEC3_, "Color", 0);
 
@@ -38,23 +38,19 @@ namespace RenderPipelines {
 
 			vertex->AddMain("\tgl_Position = vec4(Position, 1.0);\n\tFragColor = vec4(Color, 1.0);\n");
 
-			if (!vertex->Compile())
-			{
-				Console::Warn("Shader Compilation Failed: ", vertexFilepath);
-			}
+			-vertex->Compile();
+			
 
 			auto fragmentFilepath = baseDir / "fragment.hlsl";
 
-			fragment = new ShaderGraph(device, fragmentFilepath.generic_string(), VK_SHADER_STAGE_FRAGMENT_BIT);
+			fragment = new ShaderGraph(fragmentFilepath.generic_string(), VK_SHADER_STAGE_FRAGMENT_BIT);
 			fragment->AddInput(0, ShaderVarType::_VEC4_, "FragColor", 0);
 			fragment->AddOutput(0, ShaderVarType::_VEC4_, "OutputColor");
 
 			fragment->AddMain("\tOutputColor = FragColor;\n");
 
-			if (!fragment->Compile())
-			{
-				Console::Warn("Shader Compilation Failed: ", &fragment);
-			}
+			-fragment->Compile();
+			
 
 		}
 
@@ -65,9 +61,9 @@ namespace RenderPipelines {
 			if (desc.total() <= 0)
 				return;
 
-			descriptorPool = VulkanAPI::CreateDescriptorPool(device, desc);
-			descriptorSetLayout = VulkanAPI::CreateDescriptorSetLayout(device, desc);
-			descriptorSet = VulkanAPI::AllocateDescriptorSet(device, descriptorPool, descriptorSetLayout);
+			 -VulkanAPI::CreateDescriptorPool(desc, descriptorPool);
+			 -VulkanAPI::CreateDescriptorSetLayout(desc, descriptorSetLayout);
+			 -VulkanAPI::AllocateDescriptorSet(descriptorPool, descriptorSetLayout, descriptorSet);
 		}
 
 		virtual void CreateRenderPass() override {
@@ -86,43 +82,19 @@ namespace RenderPipelines {
 				}
 			};
 
-			std::vector<VkAttachmentReference> attachmentRefs{
-				// Pass 0 ref
-				{
-					.attachment = 0,
-					.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-				}
-			};
-
-			std::vector<VkSubpassDescription> subpasses
-			{
-				{
-					.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-					.colorAttachmentCount = (uint32_t)attachmentRefs.size(),
-					.pColorAttachments = attachmentRefs.data()
-				}
-			};
-
-
-			VkRenderPassCreateInfo renderPassCreateInfo
-			{
-				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-
-				.attachmentCount = (uint32_t)renderPassAttachments.size(),
-				.pAttachments = renderPassAttachments.data(),
-
-				.subpassCount = (uint32_t)subpasses.size(),
-				.pSubpasses = subpasses.data(),
-
-			};
-
-			VK_CHECK(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass));
+			VulkanAPI::CreateRenderPass(renderPassAttachments, renderPass);
+			
 		}
 
 		virtual void CreatePipeline() override
 		{
+			
+
+			std::vector<VkPushConstantRange> pushConstants{};
+			std::vector<VkDescriptorSetLayout> descriptors{};
+
+			-VulkanAPI::CreatePipelineLayout(descriptors, pushConstants, layout);
+
 			VkPipelineRasterizationStateCreateInfo RS{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 			.pNext = 0,
@@ -170,7 +142,8 @@ namespace RenderPipelines {
 
 
 
-			VkPipelineVertexInputStateCreateInfo VI{
+			VkPipelineVertexInputStateCreateInfo VI 
+			{
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
@@ -180,15 +153,6 @@ namespace RenderPipelines {
 				.vertexAttributeDescriptionCount = (uint32_t)attribs.size(),
 				.pVertexAttributeDescriptions = attribs.data()
 			};
-
-
-			VkPipelineLayoutCreateInfo layoutCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-			};
-
-			VK_CHECK(vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &layout));
 
 
 			VkPipelineInputAssemblyStateCreateInfo IA
@@ -272,8 +236,6 @@ namespace RenderPipelines {
 
 			};
 
-
-
 			VkGraphicsPipelineCreateInfo info{
 				.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 				.pNext = nullptr,
@@ -291,7 +253,7 @@ namespace RenderPipelines {
 				.subpass = 0
 			};
 
-			VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
+			-VulkanAPI::CreateGraphicsPipeline(info, pipeline);
 		}
 
 		virtual void OnDestroyPipeline() override {
@@ -318,33 +280,29 @@ namespace RenderPipelines {
 			auto vertexFilepath = baseDir / "vertex.hlsl";
 
 			// describe what will happen in the vertex stage..
-			vertex = new ShaderGraph(device, vertexFilepath.generic_string(), VK_SHADER_STAGE_VERTEX_BIT);
+			vertex = new ShaderGraph(vertexFilepath.generic_string(), VK_SHADER_STAGE_VERTEX_BIT);
 			vertex->AddInput(0, ShaderVarType::_VEC3_, "Position", 0);
 
 			vertex->AddOutput(0, ShaderVarType::_VEC2_, "FTexCoord");
 			
-			vertex->AddMain("\tgl_Position = vec4(Position, 1.0);\n\FTexCoord = TexCoord;\n");
+			vertex->AddMain("\tgl_Position = vec4(Position, 1.0);\n\tFTexCoord = TexCoord;\n");
 
-			if (!vertex->Compile())
-			{
-				Console::Warn("Shader Compilation Failed: ", vertexFilepath);
-			}
+			-vertex->Compile();
+			
 
 			auto fragmentFilepath = baseDir / "fragment.hlsl";
 
-			fragment = new ShaderGraph(device, fragmentFilepath.generic_string(), VK_SHADER_STAGE_FRAGMENT_BIT);
+			fragment = new ShaderGraph(fragmentFilepath.generic_string(), VK_SHADER_STAGE_FRAGMENT_BIT);
 			fragment->AddInput(0, ShaderVarType::_VEC2_, "FTexCoord", 0);
 			fragment->AddOutput(0, ShaderVarType::_VEC4_, "OutputColor");
 			fragment->AddTexture2D("");
 			fragment->AddMain("\tOutputColor = FragColor;\n");
 
-			if (!fragment->Compile())
-			{
-				Console::Warn("Shader Compilation Failed: ", &fragment);
-			}
+			-fragment->Compile();
 
 		}
 		
+
 		virtual void CreateDescriptorPool() override {
 			VulkanAPI::DescriptorPoolDesc desc{};
 			desc.numRequestedSamplers = 1;
@@ -352,9 +310,9 @@ namespace RenderPipelines {
 			if (desc.total() <= 0)
 				return;
 
-			descriptorPool = VulkanAPI::CreateDescriptorPool(device, desc);
-			descriptorSetLayout = VulkanAPI::CreateDescriptorSetLayout(device, desc);
-			descriptorSet = VulkanAPI::AllocateDescriptorSet(device, descriptorPool, descriptorSetLayout);
+			-VulkanAPI::CreateDescriptorPool(desc, descriptorPool);
+			-VulkanAPI::CreateDescriptorSetLayout(desc, descriptorSetLayout);
+			-VulkanAPI::AllocateDescriptorSet(descriptorPool, descriptorSetLayout, descriptorSet);
 		}
 
 		virtual void CreateRenderPass() override {
@@ -373,43 +331,19 @@ namespace RenderPipelines {
 				}
 			};
 
-			std::vector<VkAttachmentReference> attachmentRefs{
-				// Pass 0 ref
-				{
-					.attachment = 0,
-					.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-				}
-			};
+			VulkanAPI::CreateRenderPass(renderPassAttachments, renderPass);
 
-			std::vector<VkSubpassDescription> subpasses
-			{
-				{
-					.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-					.colorAttachmentCount = (uint32_t)attachmentRefs.size(),
-					.pColorAttachments = attachmentRefs.data()
-				}
-			};
-
-
-			VkRenderPassCreateInfo renderPassCreateInfo
-			{
-				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-
-				.attachmentCount = (uint32_t)renderPassAttachments.size(),
-				.pAttachments = renderPassAttachments.data(),
-
-				.subpassCount = (uint32_t)subpasses.size(),
-				.pSubpasses = subpasses.data(),
-
-			};
-
-			VK_CHECK(vkCreateRenderPass(device, &renderPassCreateInfo, nullptr, &renderPass));
 		}
 
 		virtual void CreatePipeline() override
 		{
+
+
+			std::vector<VkPushConstantRange> pushConstants{};
+			std::vector<VkDescriptorSetLayout> descriptors{};
+
+			-VulkanAPI::CreatePipelineLayout(descriptors, pushConstants, layout);
+
 			VkPipelineRasterizationStateCreateInfo RS{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 			.pNext = 0,
@@ -457,7 +391,8 @@ namespace RenderPipelines {
 
 
 
-			VkPipelineVertexInputStateCreateInfo VI{
+			VkPipelineVertexInputStateCreateInfo VI
+			{
 				.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
@@ -467,15 +402,6 @@ namespace RenderPipelines {
 				.vertexAttributeDescriptionCount = (uint32_t)attribs.size(),
 				.pVertexAttributeDescriptions = attribs.data()
 			};
-
-
-			VkPipelineLayoutCreateInfo layoutCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-			};
-
-			VK_CHECK(vkCreatePipelineLayout(device, &layoutCreateInfo, nullptr, &layout));
 
 
 			VkPipelineInputAssemblyStateCreateInfo IA
@@ -559,8 +485,6 @@ namespace RenderPipelines {
 
 			};
 
-
-
 			VkGraphicsPipelineCreateInfo info{
 				.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 				.pNext = nullptr,
@@ -578,7 +502,7 @@ namespace RenderPipelines {
 				.subpass = 0
 			};
 
-			VK_CHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
+			-VulkanAPI::CreateGraphicsPipeline(info, pipeline);
 		}
 
 		virtual void OnDestroyPipeline() override {

@@ -3,6 +3,11 @@
 #include "graphics/vulkan_api.h"
 
 enum class TextureFormat {
+	BGRA8_UNORM,
+	ARGB8_UNORM,
+	GBRA8_UNORM,
+	RGBA8_UNORM,
+
 	ARGB32_SFLOAT,
 	RGBA32_SFLOAT,
 	BGRA32_SFLOAT,
@@ -18,12 +23,18 @@ enum class TextureType {
 	CubeMapArray,
 };
 
+enum class TextureUsage {
+	FrambufferAttachment,
+	SampleAttachment
+};
+
 class Texture2D {
 
 public:
-	Texture2D(VkDevice device, uint32_t width, uint32_t height, TextureFormat format);
-	Texture2D(VkDevice device, uint32_t width, uint32_t height, uint32_t depth, TextureFormat format, TextureType type);
-
+	Texture2D(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage);
+	Texture2D(uint32_t width, uint32_t height, uint32_t depth, TextureFormat format, TextureUsage usage, TextureType type);
+	~Texture2D();
+	
 	int Load(void* data);
 
 	const VkImageView& View();

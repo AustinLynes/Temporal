@@ -1,5 +1,7 @@
 #pragma once
 
+#include "defs.h"
+
 #include "datastructures/datastructures_pch.h"
 #include "Graphics/gfx_pch.h"
 
@@ -83,7 +85,7 @@ class Texture2D;
 
 class ShaderGraph {
 public:
-	ShaderGraph(VkDevice device, const std::string& filepath, VkShaderStageFlagBits stage);
+	ShaderGraph(const std::string& filepath, VkShaderStageFlagBits stage);
 
 	~ShaderGraph();
 	
@@ -98,18 +100,18 @@ public:
 	void AddNode(CG_Node* node);
 	void ConnectNodes(CG_Node* left, CG_Node* right);
 
-	bool Compile();
+	TReturn Compile();
 
 	VkShaderModule Get();
 
 	std::vector<VkVertexInputAttributeDescription> GetAttributes();
 
 private:
-	void GenerateShaderData();
+	TReturn GenerateShaderData();
 
-	bool CreateModule();
-	bool LoadSPIRVByteCode();
-	bool ConvertSourceToSPIRV();
+	TReturn CreateModule();
+	TReturn LoadSPIRVByteCode();
+	TReturn ConvertSourceToSPIRV();
 
 
 private:
@@ -136,6 +138,5 @@ private:
 
 	
 	VkShaderModule shaderModule;
-	VkDevice device;
 
 };

@@ -12,7 +12,6 @@ public:
 
 	void Initillize(uint32_t width, uint32_t height);
 	void Cleanup();
-	void LinkDevice(VkDevice device);
 
 	const Resolution GetInternalRenderResolution();
 	const VkRenderPass GetRenderPass();
@@ -28,7 +27,6 @@ protected: /* INTERFACE */
 	virtual void OnDestroyPipeline() = 0;
 
 protected:
-	VkDevice device;
 	Resolution InternalResolution;
 
 	VkRenderPass renderPass;

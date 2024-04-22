@@ -51,15 +51,13 @@ int main() {
 
 
 	Console::Log("Initillizing Renderer ");
-	if (!renderer.Initilize(glfw::window))
+	if(renderer.Initilize(glfw::window) != TReturn::SUCCESS)
 		return 1;
 
 	Console::Success("Renderer Initilized Successfully");
 	Console::Log("Starting Update Loop");
 
 	while (!glfwWindowShouldClose(glfw::window)) {
-		//Console::Info("Updating");
-
 		renderer.RenderFrame();
 		renderer.PresentFrame();
 		glfwPollEvents();

@@ -7,16 +7,22 @@
 #endif
 
 #include <vulkan/vulkan.h>
-																						 \
+																													\
 #define VK_CHECK(res){																								 \
 	if ((res != VK_SUCCESS)) {																						 \
 		std::cerr << "vulkan error -> File: " << __FILE__ << " Line: " << __LINE__ << "Result: " << res << std::endl;\
-		assert(false);}	}	
+		return TReturn::FAILURE;																					 \
+	}																												 \
+}	
 
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+
+
+#include <defs.h>
+
 
 
 namespace VulkanAPI {
@@ -153,46 +159,97 @@ namespace VulkanAPI {
 		}
 	};
 
+	struct SwapchainSupportDetails {
+		VkSurfaceCapabilitiesKHR capabillities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
+
+
 	// CORE
-	VkInstance CreateInstance(std::vector<std::string> layers, std::vector<std::string> extensions);
-	void FreeInstance(VkInstance& instance);
+	TReturn CreateInstance();
+	TReturn FreeInstance();
 
-	VkPhysicalDevice GetPhysicalDevice(VkInstance instance);
+	TReturn GetPhysicalDevice();
 
-	VkDevice CreateDevice(VkInstance instance, VkPhysicalDevice physicalDevice, std::vector<std::string> enabled_layers, std::vector<std::string> enabled_extensions, VulkanAPI::QueueFamily queueFamily);
-	void FreeDevice(VkDevice& device);
+	TReturn CreateDevice(QueueFamily queueFamily);
+	TReturn FreeDevice();
+	TReturn GetRequiredInfo();
 
 	// QUEUES
-	QueueFamily ReserveQueueFamily(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+	TReturn ReserveQueueFamily(QueueFamily& family, VkSurfaceKHR& surface);
 
-	VkQueue AquireQueueHandle(VkDevice device, QueueFamily queueFamily, CommandType type);
-	QueueHandleBlock AquireQueueHandles(VkDevice device, QueueFamily queueFamily);
-	void FreeQueueHandles(VkDevice device, QueueHandleBlock& block);
+	TReturn AquireQueueHandle(QueueFamily queueFamily, CommandType type, VkQueue& queue);
+	TReturn AquireQueueHandles(QueueFamily queueFamily, QueueHandleBlock& block);
+	TReturn FreeQueueHandles(QueueHandleBlock& block);
 	// SURFACE
-	VkSurfaceKHR CreateSurfaceGLFW(VkInstance instance, GLFWwindow* window);
-	void FreeSurface(VkInstance instance, VkSurfaceKHR& surface);
+	TReturn CreateSurfaceGLFW(GLFWwindow* window, VkSurfaceKHR& surface);
+	TReturn FreeSurface(VkSurfaceKHR& surface);
+
+	// Swapchain, Rendering, and Framebuffers
+	TReturn CreateRenderPass(std::vector<VkAttachmentDescription>& attachment, VkRenderPass& pass);
+	TReturn DestroyRenderPass(VkRenderPass& renderPass);
+
+	TReturn CreateFramebuffer(uint32_t width, uint32_t height, std::vector<VkImageView>& views, VkRenderPass& renderPass, VkFramebuffer& fbuffer);
+	TReturn DestroyFramebuffer(VkFramebuffer& framebuffer);
+	
+	TReturn CreateSwapchain(GLFWwindow* window, VkSurfaceKHR surface, QueueFamily queueFamily, VkFormat format, VkColorSpaceKHR colorspace, uint32_t image_count, VkSwapchainKHR& swapchain);
+	TReturn GetSwapchainImages(VkSwapchainKHR& swapchain, std::vector<VkImage>& images);
+	TReturn DestroySwapchain(VkSwapchainKHR swapchain);
+	TReturn AquireNextImage(VkSemaphore& imageAquiredSemaphore, VkSwapchainKHR swapchain, uint32_t& currentFrameIndex);
+
+	// Pipelines 
+	TReturn CreateGraphicsPipeline(VkGraphicsPipelineCreateInfo info, VkPipeline& pipeline);
+	TReturn DestroyPipeline(VkPipeline& pipeline);
+
+	TReturn CreatePipelineLayout(std::vector<VkDescriptorSetLayout>& descriptors, std::vector<VkPushConstantRange>& pushConstants, VkPipelineLayout& layout);
+
+	TReturn DestroyPipelineLayout(VkPipelineLayout& layout);
 
 	// Command Pools
-	CommandPoolBlock CreateCommandPools(VkDevice device, QueueFamily family);
-	VkCommandPool CreateCommandPool(VkDevice device, uint32_t index);
-	void FreeCommandPoolBlock(VkDevice device, CommandPoolBlock& block);
+	TReturn CreateCommandPools(QueueFamily family, CommandPoolBlock& block);
+	TReturn CreateCommandPool(uint32_t index, VkCommandPool& pool);
+	TReturn FreeCommandPoolBlock(CommandPoolBlock& block);
 
-	FenceBlock CreateFenceBlock(VkDevice device);
-	void FreeFenceBlock(VkDevice device, FenceBlock& block);
-	VkFence CreateFenceSyncOjbect(VkDevice device, bool signal = false);
+	// command buffers
+	TReturn AllocateCommandBuffer(VkCommandPool& pool, VkCommandBuffer& cmd);
+	TReturn FreeCommandBuffer(VkCommandPool& pool, VkCommandBuffer& buffer);
+	// recording
+	TReturn BeginCommandBufferRecord(VkCommandBuffer& cmd);
+	TReturn EndCommandBufferRecord(VkCommandBuffer& cmd);
+	TReturn SubmitCommandBuffer(VkCommandBuffer& cmd, VkQueue& queue, VkFence& fence);
 
-	VkSemaphore CreateSemaphoreSyncObject(VkDevice device);
-	void FreeSemaphoreBlock(VkDevice device, SemaphoreBlock& block);
-	SemaphoreBlock CreateSemaphoreBlock(VkDevice device);
+	TReturn CreateFenceBlock(FenceBlock& block);
+	TReturn FreeFenceBlock(FenceBlock& block);
+	TReturn CreateFenceSyncOjbect(bool signal, VkFence& fence);
+
+	TReturn CreateSemaphoreSyncObject(VkSemaphore& semaphore);
+	TReturn FreeSemaphoreBlock(SemaphoreBlock& block);
+	TReturn CreateSemaphoreBlock(SemaphoreBlock& block);
 
 	// RESOURCES && MEMORY
-	VkImage CreateImage(VkDevice device, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageType type);
-	VkDeviceMemory AllocateImageMemory(VkDevice device, VkImage& image);
-	VkImageView CreateImageView(VkDevice device, VkImage& image, VkFormat format, VkImageViewType type);
+	TReturn CreateImage(uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageUsageFlags usage, VkImageType type, VkImage& image);
+	TReturn DestroyImage(VkImage& image);
 
-	VkDescriptorPool CreateDescriptorPool(VkDevice device, DescriptorPoolDesc desc);
-	VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice device, DescriptorPoolDesc desc);
+	TReturn CreateBuffer(uint32_t size, VkBufferUsageFlags usage, VkBuffer& buffer);
 
-	VkDescriptorSet AllocateDescriptorSet(VkDevice device, VkDescriptorPool& pool, VkDescriptorSetLayout& layout);
+	TReturn AllocateImageMemory(VkImage& image, VkDeviceMemory& memory);
+	TReturn FreeImageMemory(VkDeviceMemory& memory);
+
+	TReturn CreateImageView(VkImage& image, VkFormat format, VkImageViewType type, VkImageView& view);
+	TReturn DestroyImageView(VkImageView& view);
+
+	TReturn CreateDescriptorPool(DescriptorPoolDesc desc, VkDescriptorPool& pool);
+	TReturn CreateDescriptorSetLayout(DescriptorPoolDesc desc, VkDescriptorSetLayout& layout);
+
+	TReturn AllocateDescriptorSet(VkDescriptorPool& pool, VkDescriptorSetLayout& layout, VkDescriptorSet& set);
+
+	VkSurfaceFormatKHR SelectFormat(VkFormat format, VkColorSpaceKHR colorSpace);
+	VkPresentModeKHR SelectPresentMode(VkPresentModeKHR presentMode);
+	VkExtent2D SelectExtent(GLFWwindow* window);
+
+
+	TReturn CreateShaderModule(std::vector<unsigned int> data, VkShaderModule& shaderModule);
+	TReturn DestroyShaderModule(VkShaderModule& shaderModule);
 }
 

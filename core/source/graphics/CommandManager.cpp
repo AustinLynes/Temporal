@@ -2,65 +2,40 @@
 
 
 
-CommandManager::CommandManager(VkDevice device, VulkanAPI::QueueFamily queueFamily)
-	: device{device}
+CommandManager::CommandManager(VulkanAPI::QueueFamily queueFamily)
 {
-	CommandPools = VulkanAPI::CreateCommandPools(device, queueFamily);
-	CommandQueues = VulkanAPI::AquireQueueHandles(device, queueFamily);
-
+	-VulkanAPI::CreateCommandPools(queueFamily, CommandPools);
+	-VulkanAPI::AquireQueueHandles(queueFamily, CommandQueues);
 }
 
 CommandManager::~CommandManager()
 {
-	VulkanAPI::FreeCommandPoolBlock(device, CommandPools);
-	VulkanAPI::FreeQueueHandles(device, CommandQueues);
+	VulkanAPI::FreeCommandPoolBlock(CommandPools);
+	VulkanAPI::FreeQueueHandles(CommandQueues);
 }
 
 
 VkCommandBuffer CommandManager::BeginSingleTimeCommand(VulkanAPI::CommandType type)
 {
-	VkCommandBufferAllocateInfo info
-	{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.pNext = nullptr,
-		.commandPool = GetPool(type),
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1,
-	};
-
 	VkCommandBuffer singleTimeBuffer;
+	
+	auto pool = GetPool(type);
 
-	VK_CHECK(vkAllocateCommandBuffers(device, &info, &singleTimeBuffer));
+	VulkanAPI::AllocateCommandBuffer(pool, singleTimeBuffer);
 
-	VkCommandBufferBeginInfo begin{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		.pNext = nullptr,
-		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-	};
-
-	VK_CHECK(vkBeginCommandBuffer(singleTimeBuffer, &begin));
+	VulkanAPI::BeginCommandBufferRecord(singleTimeBuffer);
 
 	return singleTimeBuffer;
 }
 
 void CommandManager::EndSingleTimeCommand(VkCommandBuffer cmd, VulkanAPI::CommandType type, VkFence& fence)
 {
-	VK_CHECK(vkEndCommandBuffer(cmd));
+	auto queue = GetQueue(type);
+	auto pool = GetPool(type);
 
-	VK_CHECK(vkResetFences(device, 1, &fence));
-
-	VkSubmitInfo info
-	{
-		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.commandBufferCount = 1,
-		.pCommandBuffers = &cmd,
-	};
-
-	VK_CHECK(vkQueueSubmit(GetQueue(type), 1, &info, fence));
-	
-	VK_CHECK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-
-	vkFreeCommandBuffers(device, GetPool(type), 1, &cmd);
+	VulkanAPI::EndCommandBufferRecord(cmd);
+	VulkanAPI::SubmitCommandBuffer(cmd, queue, fence);
+	VulkanAPI::FreeCommandBuffer(pool, cmd);
 
 }
 

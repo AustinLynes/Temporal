@@ -6,18 +6,10 @@
 
 class RenderPipeline;
 
-
-
-struct FramebufferAttachment {
-	VkImage image;
-	VkDeviceMemory memory;
-
-	VkImageView view;
-};
-
+class Texture2D;
 class Framebuffer {
 public:
-	Framebuffer(VkDevice device, Resolution resolution, VulkanAPI::QueueFamily queueFamily);
+	Framebuffer(Resolution resolution, VulkanAPI::QueueFamily queueFamily);
 	~Framebuffer();
 
 	void Create();
@@ -34,11 +26,11 @@ private:
 
 	Resolution resolution;
 
-	VkFramebuffer buffer;
+	VkFramebuffer framebuffer;
 	VkRenderPass renderPass;
-	VkDevice device;
 
-	std::vector<FramebufferAttachment> attachments;
+	std::vector<Texture2D*> attachments;
+
 	VulkanAPI::QueueFamily queueFamily;
 
 };

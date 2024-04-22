@@ -3,24 +3,17 @@
 typedef unsigned char Byte;
 
 
-#if 0 // DUMMY DATA
-struct {
-	const uint32_t width;
-	const uint32_t height;
-	const TextureFormat format = TextureFormat::ARGB32_SFLOAT;
-	// ABGR
-	const std::vector<Byte> data = { 
-		 0xFF, 0x00, 0xFF, 0x00 , 0xFF, 0x00, 0xFF, 0x00 ,  0xFF, 0x00, 0x00, 0xFF , 0xFF, 0x00, 0xFF, 0x00 ,
-		 0xFF, 0x00, 0xFF, 0x00 , 0xFF, 0x00, 0xFF, 0x00 ,  0xFF, 0x00, 0x00, 0xFF , 0xFF, 0x00, 0xFF, 0x00 ,
-		 0xFF, 0xFF, 0x00, 0x00 , 0xFF, 0xFF, 0x00, 0x00 ,  0xFF, 0xFF, 0x00, 0xFF , 0xFF, 0xFF, 0xFF, 0x00 ,
-		 0xFF, 0xFF, 0x00, 0x00 , 0xFF, 0xFF, 0x00, 0x00 ,  0xFF, 0xFF, 0x00, 0xFF , 0xFF, 0xFF, 0xFF, 0x00 ,
-	};
-}DUMMY_IMAGE;
-#endif
+
 
 VkFormat ToVkFormat(TextureFormat f) {
 	switch (f)
 	{
+	case TextureFormat::BGRA8_UNORM:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::ARGB8_UNORM:
+	case TextureFormat::RGBA8_UNORM:
+		return VK_FORMAT_R8G8B8A8_UNORM;
+
 	case TextureFormat::ARGB32_SFLOAT:
 	case TextureFormat::RGBA32_SFLOAT:
 	case TextureFormat::BGRA32_SFLOAT:
@@ -67,19 +60,37 @@ VkImageViewType ToVkImageViewType(TextureType t) {
 	}
 }
 
-
-Texture2D::Texture2D(VkDevice device, uint32_t width, uint32_t height, TextureFormat format)
-{
-	image = VulkanAPI::CreateImage(device, width, height, 1, ToVkFormat(format), ToVkImageType(TextureType::Texture1D));
-	memory = VulkanAPI::AllocateImageMemory(device, image);
-	view = VulkanAPI::CreateImageView(device, image, ToVkFormat(format), ToVkImageViewType(TextureType::Texture1D));
+VkImageUsageFlags ToVkImageUsage(TextureUsage usage) {
+	switch (usage)
+	{
+	case TextureUsage::FrambufferAttachment:
+		return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	case TextureUsage::SampleAttachment:
+		return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	}
 }
 
-Texture2D::Texture2D(VkDevice device, uint32_t width, uint32_t height, uint32_t depth, TextureFormat format, TextureType type)
+
+Texture2D::Texture2D(uint32_t width, uint32_t height, TextureFormat format, TextureUsage usage)
 {
-	image = VulkanAPI::CreateImage(device, width, height, depth, ToVkFormat(format), ToVkImageType(type));
-	memory = VulkanAPI::AllocateImageMemory(device, image);
-	view = VulkanAPI::CreateImageView(device, image, ToVkFormat(format), ToVkImageViewType(type));
+	VulkanAPI::CreateImage( width, height, 1, ToVkFormat(format), ToVkImageUsage(usage), ToVkImageType(TextureType::Texture2D), image);
+	VulkanAPI::AllocateImageMemory(image, memory);
+	VulkanAPI::CreateImageView(image, ToVkFormat(format), ToVkImageViewType(TextureType::Texture2D), view);
+}
+
+Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t depth, TextureFormat format,  TextureUsage usage, TextureType type)
+{
+	VulkanAPI::CreateImage(width, height, depth, ToVkFormat(format), ToVkImageUsage(usage), ToVkImageType(type), image);
+	VulkanAPI::AllocateImageMemory(image, memory);
+	VulkanAPI::CreateImageView(image, ToVkFormat(format), ToVkImageViewType(type), view);
+}
+
+Texture2D::~Texture2D()
+{
+	VulkanAPI::DestroyImageView(view);
+	VulkanAPI::FreeImageMemory(memory);
+	VulkanAPI::DestroyImage(image);
+
 }
 
 

@@ -17,9 +17,8 @@
 #include "../Textures/TextureFactory.h"
 
 
-ShaderGraph::ShaderGraph(VkDevice device, const std::string& filepath, VkShaderStageFlagBits stage)
+ShaderGraph::ShaderGraph(const std::string& filepath, VkShaderStageFlagBits stage)
 {
-	this->device = device;
 
 	this->directory = filepath.substr(0, filepath.find_last_of('/') + 1);
 	auto slash = filepath.find_last_of('/');
@@ -36,7 +35,8 @@ ShaderGraph::ShaderGraph(VkDevice device, const std::string& filepath, VkShaderS
 
 ShaderGraph::~ShaderGraph()
 {
-	vkDestroyShaderModule(device, shaderModule, nullptr);
+	-VulkanAPI::DestroyShaderModule(shaderModule);
+
 }
 
 void ShaderGraph::AddInput(int location, ShaderVarType type, const std::string& name, int binding)
@@ -84,47 +84,10 @@ void ShaderGraph::AddTexture2D(const std::string& filepath)
 	TextureFormat format = TextureFormat::ARGB32_SFLOAT;
 
 	// Load the Texture.
-	auto texture = TextureFactory::CreateTexture2D(device, width, height, format);
+	auto texture = TextureFactory::CreateSampledTexture2D(width, height, format);
 	textures[++textureCount] = texture;
 
-	//VkDescriptorImageInfo imageInfo = {};
-	//imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	//imageInfo.imageView = texture->View();
-	//imageInfo.sampler = texture->Sampler();
-
-
-	//VkWriteDescriptorSet descriptorWrite = {};
-	//descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	//descriptorWrite.dstSet = descriptorSet;
-	//descriptorWrite.dstBinding = 0;
-	//descriptorWrite.dstArrayElement = 0;
-	//descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	//descriptorWrite.descriptorCount = 1;
-	//descriptorWrite.pImageInfo = &imageInfo;
-
-	//vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-
 }
-
-//void ShaderGraph::AddBinding()
-//{
-//	VkDescriptorImageInfo imageInfo = {};
-//	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//	imageInfo.imageView = textureImageView;
-//	imageInfo.sampler = textureSampler;
-//
-//	VkWriteDescriptorSet descriptorWrite = {};
-//	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//	descriptorWrite.dstSet = descriptorSet;
-//	descriptorWrite.dstBinding = 0;
-//	descriptorWrite.dstArrayElement = 0;
-//	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-//	descriptorWrite.descriptorCount = 1;
-//	descriptorWrite.pImageInfo = &imageInfo;
-//
-//	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-//
-//}
 
 void ShaderGraph::AddMain(const std::string& fn)
 {
@@ -144,13 +107,21 @@ void ShaderGraph::ConnectNodes(CG_Node* left, CG_Node* right)
 }
 
 
-bool ShaderGraph::Compile()
+TReturn ShaderGraph::Compile()
 {
 	std::string hlslFilePath = directory + fileName + ShaderGraph::extension_GLSL;
 	FileSystem::CreateIFFNoneExist(hlslFilePath);
-	GenerateShaderData();
-	return ConvertSourceToSPIRV() && LoadSPIRVByteCode() && CreateModule();
+	
+	-GenerateShaderData();
+
+
+	-ConvertSourceToSPIRV();
+	-LoadSPIRVByteCode();
+	-CreateModule();
+
+	return  TReturn::SUCCESS;
 }
+
 VkShaderModule ShaderGraph::Get()
 {
 	return shaderModule;
@@ -264,7 +235,7 @@ std::vector<VkVertexInputAttributeDescription> ShaderGraph::GetAttributes()
 	return attributes;
 }
 
-bool ShaderGraph::ConvertSourceToSPIRV() {
+TReturn ShaderGraph::ConvertSourceToSPIRV() {
 
 	std::string hlslFilePath = directory + fileName + ShaderGraph::extension_GLSL ;
 	std::string spvFilePath = directory + fileName + ShaderGraph::extension_SPIRV;
@@ -286,7 +257,7 @@ bool ShaderGraph::ConvertSourceToSPIRV() {
 	FILE* pipe = _popen(cmd.c_str(), "r"); // execute the command 
 	if (!pipe) {
 		Console::Fatal("Failed to execute command!");
-		return false;
+		return TReturn::COMMAND_EXECUTECUTION_FAILED;
 	}
 
 	char buffer[128];
@@ -303,20 +274,20 @@ bool ShaderGraph::ConvertSourceToSPIRV() {
 		Console::Warn("System Command Failed! ErrorCode: ", result);
 		Console::Log("Errors: ", output.str());
 			
-		return false;
+		return TReturn::FAILURE;
 	}
 
-	return true;
+	return TReturn::SUCCESS;
 }
 
-bool ShaderGraph::LoadSPIRVByteCode() {
+TReturn ShaderGraph::LoadSPIRVByteCode() {
 	std::string spvFilePath = directory + fileName + ShaderGraph::extension_SPIRV;
 
 	// Open the SPIR-V file in binary mode
 	std::ifstream file(spvFilePath, std::ios::binary);
 	if (!file.is_open()) {
 		// Failed to open the file
-		return false;
+		return TReturn::FILE_NOT_FOUND;
 	}
 
 	// Get the file size
@@ -334,8 +305,11 @@ bool ShaderGraph::LoadSPIRVByteCode() {
 	// Convert the byte data to a vector of unsigned integers (SPIR-V bytecode)
 	data.assign(reinterpret_cast<const unsigned int*>(fileData.data()), reinterpret_cast<const unsigned int*>(fileData.data() + fileSize));
 
+	if (data.empty())
+		return TReturn::FAILURE;
+
 	// Check if any data was read
-	return !data.empty();
+	return TReturn::SUCCESS;
 }
 
 std::string ShaderVarTypeToGLSLTypeString(ShaderVarType type) {
@@ -383,7 +357,7 @@ std::string ShaderVarTypeToGLSLTypeString(ShaderVarType type) {
 }
 
 
-void ShaderGraph::GenerateShaderData()
+TReturn ShaderGraph::GenerateShaderData()
 {
 	std::stringstream ss;
 
@@ -445,19 +419,14 @@ void ShaderGraph::GenerateShaderData()
 
 	FileSystem::WriteToFile(filepath, ss.str());
 
+	return TReturn::SUCCESS;
 }
 
-bool ShaderGraph::CreateModule() {
+TReturn ShaderGraph::CreateModule() {
 
-	VkShaderModuleCreateInfo create{
-			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.codeSize = data.size() * sizeof(unsigned int),
-			.pCode = data.data(),
-	};
+	-VulkanAPI::CreateShaderModule(data, shaderModule);
 
-	return vkCreateShaderModule(device, &create, nullptr, &shaderModule) == VK_SUCCESS;
+	return TReturn::SUCCESS;
 }
 
 

@@ -12,31 +12,7 @@
 #include <debug/Console.h>
 
 
-namespace vk
-{
-	VkInstance Instance = { VK_NULL_HANDLE };
-	VkPhysicalDevice PhysicalDevice = { VK_NULL_HANDLE };
-	VkDevice Device = { VK_NULL_HANDLE };
 
-	VulkanAPI::QueueFamily QueueFamily;
-
-	CommandManager* commandManager;
-	Framebuffer* framebuffer;
-	Swapchain* swapchain;
-
-	VulkanAPI::FenceBlock Fences;
-	VulkanAPI::SemaphoreBlock Semaphores;
-
-	VkSurfaceKHR Surface;
-	uint32_t CurrentFrameIndex = 0;
-
-	std::unordered_map<std::string, RenderPipeline*> renderPipelines;
-
-	std::vector<std::string> layers = {};
-	std::vector<std::string> instance_extensions = {};
-	std::vector<std::string> device_extensions = {};
-
-}// GLOBALS
 
 #include <array>
 
@@ -55,7 +31,21 @@ constexpr std::array<SQVertex, 4> screenQuadVertices = {
 	SQVertex{ 1.0f,  1.0f, 0.0f,  1.0f, 1.0f }
 };
 
+namespace r {
+	VulkanAPI::QueueFamily QueueFamily;
+	VulkanAPI::FenceBlock Fences;
+	VulkanAPI::SemaphoreBlock Semaphores;
 
+	uint32_t currentFrameIndex;
+	VkSurfaceKHR Surface;
+
+	namespace screen {
+		VkBuffer vbo;
+		VkBufferView vbo_View;
+		VkDeviceMemory bufferMemory;
+	}
+
+}
 
 #define PIPELINE_STR(pipe) #pipe
 
@@ -69,7 +59,7 @@ Renderer::~Renderer()
 
 }
 
-bool Renderer::Initilize(GLFWwindow* window)
+TReturn Renderer::Initilize(GLFWwindow* window)
 {
 	this->window = window;
 
@@ -78,37 +68,46 @@ bool Renderer::Initilize(GLFWwindow* window)
 	Resolution resoulution;
 	resoulution.width = static_cast<uint32_t>(width);
 	resoulution.height = static_cast<uint32_t>(height);
+	
+	glfwSetWindowUserPointer(window, (void*)this);
 
-	GetRequiredInfo();
+	-VulkanAPI::GetRequiredInfo();
 
 	// Create Instance 
-	vk::Instance = VulkanAPI::CreateInstance(vk::layers, vk::instance_extensions);
+	-VulkanAPI::CreateInstance();
 	// Create Surface
-	vk::Surface = VulkanAPI::CreateSurfaceGLFW(vk::Instance, window);
+	-VulkanAPI::CreateSurfaceGLFW(window, r::Surface);
 	// Select A Physical Device
-	vk::PhysicalDevice = VulkanAPI::GetPhysicalDevice(vk::Instance);
+	-VulkanAPI::GetPhysicalDevice();
 	// Create Device
-	vk::QueueFamily = VulkanAPI::ReserveQueueFamily(vk::PhysicalDevice, vk::Surface);
-	vk::Device = VulkanAPI::CreateDevice(vk::Instance, vk::PhysicalDevice, vk::layers, vk::device_extensions, vk::QueueFamily);
 
-	vk::Fences = VulkanAPI::CreateFenceBlock(vk::Device);
-	vk::Semaphores = VulkanAPI::CreateSemaphoreBlock(vk::Device);
+	-VulkanAPI::ReserveQueueFamily(r::QueueFamily, r::Surface);
 
-	vk::commandManager = new CommandManager(vk::Device, vk::QueueFamily);
+	-VulkanAPI::CreateDevice(r::QueueFamily);
 
-	vk::swapchain = new Swapchain(vk::Device, vk::PhysicalDevice, window, vk::Surface, vk::QueueFamily, resoulution, 3);
+	-VulkanAPI::CreateFenceBlock(r::Fences);
+	-VulkanAPI::CreateSemaphoreBlock(r::Semaphores);
 
-	vk::framebuffer = new Framebuffer(vk::Device, resoulution, vk::QueueFamily);
+	commandManager = new CommandManager(r::QueueFamily);
+
+	swapchain = new Swapchain(window, r::Surface, r::QueueFamily, resoulution, 3);
+
+	framebuffer = new Framebuffer(resoulution, r::QueueFamily);
 
 	//vk::renderPipelines.emplace(RenderPipelines::ScreenRenderPass, RenderPipelineFactory::Create<RenderPipelines::Basic2D>(vk::Device, resoulution));
-	vk::renderPipelines.emplace("Basic2D", RenderPipelineFactory::Create<RenderPipelines::Basic2D>(vk::Device, resoulution));
-		
+	renderPipelines.emplace("Basic2D", RenderPipelineFactory::Create<RenderPipelines::Basic2D>(resoulution));
+	
+	// load some models...
+
+	auto size = sizeof(SQVertex) * screenQuadVertices.size();
+	-VulkanAPI::CreateBuffer(size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, r::screen::vbo);
+
 
 	// bind to the window a resizing event
 	
 	glfwSetFramebufferSizeCallback(window, HandleResize);
 
-	return vk::Instance != VK_NULL_HANDLE && vk::PhysicalDevice != VK_NULL_HANDLE && vk::Device != VK_NULL_HANDLE;
+	return TReturn::SUCCESS;
 }
 
 // allocate a command buffer to record commands to.
@@ -119,37 +118,31 @@ bool Renderer::Initilize(GLFWwindow* window)
 // end recording process on allocated command buffer.
 // submit command buffer 
 
-using namespace VulkanAPI;
 
-struct Color {
-	float r;
-	float g;
-	float b;
-	float a;
-};
 
 void Renderer::RenderFrame() {
+	
 
-	VkCommandBuffer cmd = vk::commandManager->BeginSingleTimeCommand(CommandType::Graphics);
+	VkCommandBuffer cmd = commandManager->BeginSingleTimeCommand(VulkanAPI::CommandType::Graphics);
 
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, vk::renderPipelines["Basic2D"]->Get());
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, renderPipelines["Basic2D"]->Get());
 
 	VkClearValue clearValues[2];
-	clearValues[0].color = { {0.1f, 0.1f, 0.1f, 0} }; // Start color of the gradient
+	clearValues[0].color = { {0.21f, 0.21f, 0.21f, 0} }; // Start color of the gradient
 
 	
 	VkRenderPassBeginInfo renderPassBegineInfo
 	{
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-		.renderPass = vk::framebuffer->GetRenderPass(),
-		.framebuffer = vk::framebuffer->Get(),
-		.renderArea = { 0, 0, vk::framebuffer->GetWidth(), vk::framebuffer->GetHeight() },
+		.renderPass = framebuffer->GetRenderPass(),
+		.framebuffer = framebuffer->Get(),
+		.renderArea = { 0, 0, framebuffer->GetWidth(), framebuffer->GetHeight() },
 		.clearValueCount = _countof(clearValues), 
 		.pClearValues = clearValues,
 		
 	};
 
-	auto currentImage = vk::swapchain->GetImage(vk::CurrentFrameIndex);
+	auto currentImage = swapchain->GetImage(r::currentFrameIndex);
 	
 	VkImageSubresourceRange subresourceRange
 	{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0,  VK_REMAINING_ARRAY_LAYERS };
@@ -177,6 +170,8 @@ void Renderer::RenderFrame() {
 	vkCmdClearColorImage(cmd, currentImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValues[0].color, 1,&subresourceRange );
 	
 	vkCmdBeginRenderPass(cmd, &renderPassBegineInfo, VK_SUBPASS_CONTENTS_INLINE);
+	//vkCmdBindVertexBuffers(cmd, 0, );
+	//vkCmdDraw(cmd, 4, 0, 0, 0);
 
 	vkCmdEndRenderPass(cmd);
 
@@ -185,34 +180,24 @@ void Renderer::RenderFrame() {
 		.pNext = nullptr,
 	};
 
-	vk::commandManager->EndSingleTimeCommand(cmd, CommandType::Graphics, vk::Fences.Drawing);
+	commandManager->EndSingleTimeCommand(cmd, VulkanAPI::CommandType::Graphics, r::Fences.Drawing);
 
-	while (vkGetFenceStatus(vk::Device, vk::Fences.Drawing) != VK_SUCCESS) {
-		Console::Log("Waiting For Drawing To Complete...");
-	};
 	Console::Log("Drawing Completed!");
 }
 
 void Renderer::PresentFrame()
 {
-	VkResult res = vkAcquireNextImageKHR(vk::Device, vk::swapchain->Get(), UINT64_MAX, vk::Semaphores.ImageAvailable, VK_NULL_HANDLE, &vk::CurrentFrameIndex);
-
-	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
-		return;
-	}
-	else if (res != VK_SUCCESS) {
-		// ERROR
-		Console::Error("Could Not Aquire Next Image...");
-		return;
-	}
-	auto cmd = vk::commandManager->BeginSingleTimeCommand(CommandType::Graphics);
-
-	auto swapchain_ref = vk::swapchain->Get();
-
-	auto currentImage = vk::swapchain->GetImage(vk::CurrentFrameIndex);
+	swapchain->AquireNextImage(r::Semaphores.ImageAvailable, r::currentFrameIndex);
 
 
-	auto presentationQueue = vk::commandManager->GetPresentQueue();
+	auto cmd = commandManager->BeginSingleTimeCommand(VulkanAPI::CommandType::Graphics);
+
+	auto swapchain_ref = swapchain->Get();
+
+	auto currentImage = swapchain->GetImage(r::currentFrameIndex);
+
+
+	auto presentationQueue = commandManager->GetPresentQueue();
 
 	VkImageMemoryBarrier barrier
 	{
@@ -234,21 +219,21 @@ void Renderer::PresentFrame()
 		1, &barrier
 		);
 
-	vk::commandManager->EndSingleTimeCommand(cmd, CommandType::Graphics, vk::Fences.Presenting);
+	commandManager->EndSingleTimeCommand(cmd, VulkanAPI::CommandType::Graphics, r::Fences.Presenting);
 
 	VkPresentInfoKHR present
 	{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, 
 		.pNext = nullptr, 
 		.waitSemaphoreCount = 1, 
-		.pWaitSemaphores = &vk::Semaphores.ImageAvailable,
+		.pWaitSemaphores = &r::Semaphores.ImageAvailable,
 		.swapchainCount = 1,
 		.pSwapchains = &swapchain_ref,
-		.pImageIndices = &vk::CurrentFrameIndex,
+		.pImageIndices = &r::currentFrameIndex,
 
 	};
 
-	res = vkQueuePresentKHR(presentationQueue, &present);
+	VkResult res = vkQueuePresentKHR(presentationQueue, &present);
 
 
 }
@@ -261,6 +246,9 @@ void Renderer::PresentFrame()
 
 void Renderer::HandleResize(GLFWwindow* win, int width, int height)
 {
+	auto rend = (Renderer*)glfwGetWindowUserPointer(win);
+
+
 	std::string title = "Temporal [Vulkan]-(" + std::to_string(width) + ", " + std::to_string(height) + ")";
 	glfwSetWindowTitle(win, title.c_str());
 
@@ -269,16 +257,17 @@ void Renderer::HandleResize(GLFWwindow* win, int width, int height)
 	res.height = static_cast<uint32_t>(height);
 
 
-	delete vk::framebuffer;
-	delete vk::swapchain;
+	delete rend->framebuffer;
+	delete rend->swapchain;
 	
-	VulkanAPI::FreeSurface(vk::Instance, vk::Surface);
+	VulkanAPI::FreeSurface(r::Surface);
 
-	vk::Surface = VulkanAPI::CreateSurfaceGLFW(vk::Instance, win);
+	VulkanAPI::CreateSurfaceGLFW(win, r::Surface);
 	
-	vk::swapchain = new Swapchain(vk::Device, vk::PhysicalDevice, win, vk::Surface, vk::QueueFamily, res, 3);
-	
-	vk::framebuffer = new Framebuffer(vk::Device, res, vk::QueueFamily);
+	rend->swapchain = new Swapchain(win, r::Surface, r::QueueFamily, res, 3);
+
+	rend->framebuffer = new Framebuffer(res, r::QueueFamily);
+
 
 
 
@@ -287,52 +276,27 @@ void Renderer::HandleResize(GLFWwindow* win, int width, int height)
 
 void Renderer::Cleanup()
 {
-	for (const auto& entry : vk::renderPipelines)
+	for (const auto& entry : renderPipelines)
 	{
 		auto pipeline = entry.second;
 		pipeline->Cleanup();
 		delete pipeline;
 	}
 
-	delete vk::framebuffer;
-	delete vk::swapchain;
-	delete vk::commandManager;
+	delete framebuffer;
+	delete swapchain;
+	delete commandManager;
 
 
-	VulkanAPI::FreeFenceBlock(vk::Device, vk::Fences);
-	VulkanAPI::FreeSemaphoreBlock(vk::Device, vk::Semaphores);
+	VulkanAPI::FreeFenceBlock(r::Fences);
+	VulkanAPI::FreeSemaphoreBlock(r::Semaphores);
 
-	VulkanAPI::FreeDevice(vk::Device);
-	VulkanAPI::FreeSurface(vk::Instance, vk::Surface);
-	VulkanAPI::FreeInstance(vk::Instance);
+	VulkanAPI::FreeDevice();
+	VulkanAPI::FreeSurface(r::Surface);
+	VulkanAPI::FreeInstance();
 }
 
-void Renderer::GetRequiredInfo()
-{
-#ifdef _DEBUG 
-	bool isValidationEnabled = true;
-#else
-	bool isValidationEnabled = false;
-#endif
 
-
-	if (isValidationEnabled)
-	{
-		vk::layers.push_back("VK_LAYER_KHRONOS_validation");
-	}
-
-	// load required extension for use with GLFW
-	uint32_t extCount = -1;
-	auto glfwRequiredExtensions = glfwGetRequiredInstanceExtensions(&extCount);
-	for (size_t i = 0; i < extCount; i++)
-	{
-		vk::instance_extensions.push_back(glfwRequiredExtensions[i]);
-	}
-
-	// load requried device extensions
-
-	vk::device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-}
 
 
 

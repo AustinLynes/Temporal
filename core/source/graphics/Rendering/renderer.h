@@ -1,11 +1,13 @@
 #pragma once
 
-#include <windows.h>
-
+#include <defs.h>
 #include <datastructures/datastructures_pch.h>
 
-#include <graphics/gfx_pch.h>
-
+struct GLFWwindow;
+class CommandManager;
+class Framebuffer;
+class Swapchain;
+class RenderPipeline;
 
 class Renderer {
 
@@ -13,7 +15,8 @@ public:
 	Renderer();
 	~Renderer();
 
-	bool Initilize(GLFWwindow* window);
+	TReturn Initilize(GLFWwindow* window);
+	
 	void Cleanup();
 
 	void RenderFrame();
@@ -22,9 +25,16 @@ protected:
 	static void HandleResize(GLFWwindow* win, int width, int height);
 
 private:
-	// MISC
-	void GetRequiredInfo();
 
 	GLFWwindow* window;
 
+
+
+	CommandManager* commandManager;
+	Framebuffer* framebuffer;
+	Swapchain* swapchain;
+	
+	std::unordered_map<std::string, RenderPipeline*> renderPipelines;
+
 };
+
